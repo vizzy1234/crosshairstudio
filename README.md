@@ -19,11 +19,20 @@ A **free and open-source alternative** to Crosshair X, Crosshair Studio lets you
 
 ### Requirements
 - **Windows 10/11** (x64)
+- https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist?view=msvc-170#latest-supported-redistributable-version
+- https://www.microsoft.com/en-us/download/details.aspx?id=6812
 
 ### Download & Install
 
 1. Download the latest installer from [Releases](../../releases)
-2. Run `Crozzhair-Setup.exe`
+2. Run `Crosshair Studio-Setup.exe`
+3. Follow the installation wizard
+4. Launch from Start Menu or desktop shortcut
+
+---
+
+1. Download the latest installer from [Releases](../../releases)
+2. Run `Crosshair Studio-Setup.exe`
 3. Follow the installation wizard
 4. Launch from Start Menu or desktop shortcut
 
