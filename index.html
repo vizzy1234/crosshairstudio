@@ -1,947 +1,417 @@
-<!DOCTYPE html>
-<html lang="en" class="scroll-smooth">
+<!doctype html>
+<html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Crosshair Studio — Precision FPS Overlay</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&family=Montserrat:wght@600;700;800&display=swap');
-        
-        :root {
-            --accent: #ff7a00;
-            --gradient-start: #ff7a00;
-            --gradient-end: #ff9500;
-        }
-        
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        .tail-container {
-            font-family: 'Inter', system_ui, sans-serif;
-        }
-        
-        .heading-font {
-            font-family: 'Space Grotesk', sans-serif;
-        }
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Crosshair Studio — A custom crosshair overlay for any game</title>
+<meta name="description" content="Crosshair Studio is a free, lightweight Windows overlay that draws a custom crosshair on top of any game. Dozens of presets, a full designer, and true 0% idle CPU." />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  :root{
+    /* Exact palette from the Crosshair Studio app (src/ui/UI.h) */
+    --bg:#1c1c1c;
+    --panel:#2b2d31;
+    --card:#242424;
+    --card-hover:#35373c;
+    --card-sel:#404249;
+    --border:#1e1f22;
+    --border-soft:#232428;
+    --text:#f2f3f5;
+    --text-dim:#b5bac1;
+    --text-faint:#949ba4;
+    --accent:#e67a2a;
+    --accent-dim:#d66a1a;
+    --accent-dark:#c65a0a;
+    --good:#23a55a;
+    --danger:#ed4245;
+    --radius-btn:4px;
+    --radius-card:8px;
+    --radius-panel:8px;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:'Inter',system-ui,-apple-system,Segoe UI,Roboto,sans-serif;-webkit-font-smoothing:antialiased;scroll-behavior:smooth}
+  a{color:inherit;text-decoration:none}
+  img{max-width:100%;display:block}
 
-        .header-title-font {
-            font-family: 'Montserrat', sans-serif;
-            font-weight: 700;
-            letter-spacing: -0.02em;
-        }
+  /* Background ambience — subtle, dark, matches in-app */
+  body::before{
+    content:"";position:fixed;inset:0;z-index:-2;pointer-events:none;
+    background:
+      radial-gradient(900px 500px at 85% -10%, rgba(230,122,42,.10), transparent 60%),
+      radial-gradient(700px 400px at -10% 20%, rgba(230,122,42,.05), transparent 60%),
+      var(--bg);
+  }
+  body::after{
+    content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;opacity:.4;
+    background-image:
+      linear-gradient(rgba(255,255,255,.025) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,.025) 1px, transparent 1px);
+    background-size:42px 42px;
+    mask-image:radial-gradient(ellipse at 50% 0%, #000 30%, transparent 75%);
+  }
 
-        .hero-bg {
-            background: radial-gradient(at center bottom, rgba(255, 122, 0, 0.25) 0%, transparent 70%),
-                        linear-gradient(180deg, #070707 0%, #0a0a0a 100%);
-            background-size: cover;
-            background-position: center;
-            background-attachment: fixed;
-        }
+  /* Nav */
+  .nav{
+    position:sticky;top:0;z-index:50;backdrop-filter:saturate(140%) blur(12px);
+    background:rgba(28,28,28,.7);border-bottom:1px solid var(--border-soft);
+  }
+  .nav-inner{max-width:1200px;margin:0 auto;padding:14px 28px;display:flex;align-items:center;gap:24px}
+  .brand{display:flex;align-items:center;gap:10px;font-weight:800;letter-spacing:.2px}
+  .brand-mark{width:28px;height:28px;display:grid;place-items:center;border-radius:var(--radius-btn);background:var(--card);border:1px solid var(--border)}
+  .brand-mark svg{width:18px;height:18px}
+  .brand-name{font-size:16px;color:var(--text)}
+  .brand-name span{color:var(--accent)}
+  .nav-links{display:flex;gap:22px;margin-left:18px}
+  .nav-links a{color:var(--text-dim);font-size:14px;font-weight:500;transition:color .15s}
+  .nav-links a:hover{color:var(--text)}
+  .nav-cta{margin-left:auto;display:flex;align-items:center;gap:10px}
+  .btn{
+    display:inline-flex;align-items:center;gap:10px;
+    padding:10px 16px;border-radius:var(--radius-btn);font-weight:600;font-size:14px;
+    border:1px solid transparent;cursor:pointer;transition:background .15s ease, border-color .15s ease;
+    white-space:nowrap;
+  }
+  .btn svg{width:16px;height:16px}
+  .btn-primary{
+    background:var(--accent);color:#fff;
+  }
+  .btn-primary:hover{background:var(--accent-dim)}
+  .btn-primary:active{background:var(--accent-dark)}
+  .btn-ghost{background:var(--card);border-color:var(--border);color:var(--text)}
+  .btn-ghost:hover{background:var(--card-hover);border-color:var(--border-soft)}
 
-        .gradient-text {
-            background: linear-gradient(135deg, #ff7a00 0%, #ff9500 50%, #ff7a00 100%);
-            background-size: 200% auto;
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            animation: gradient-shift 8s ease-in-out infinite;
-            filter: drop-shadow(0 0 30px rgba(255, 122, 0, 0.5)) drop-shadow(0 0 60px rgba(255, 122, 0, 0.3));
-        }
+  /* Hero */
+  .hero{max-width:1320px;margin:0 auto;padding:80px 28px 40px;display:grid;grid-template-columns:1fr 1.25fr;gap:56px;align-items:center}
+  .eyebrow{
+    display:inline-flex;align-items:center;gap:10px;padding:5px 11px;border-radius:var(--radius-btn);
+    background:var(--card);border:1px solid var(--border);color:var(--accent);
+    font-size:11.5px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;
+  }
+  .eyebrow .dot{width:6px;height:6px;border-radius:50%;background:var(--accent)}
+  h1{font-size:clamp(40px,5.4vw,64px);line-height:1.05;letter-spacing:-1.4px;margin:18px 0 18px;font-weight:800;color:var(--text)}
+  h1 .accent{color:var(--accent)}
+  .lede{color:var(--text-dim);font-size:17px;line-height:1.65;max-width:560px}
+  .hero-cta{display:flex;flex-wrap:wrap;gap:10px;margin-top:28px}
+  .hero-meta{display:flex;flex-wrap:wrap;gap:22px;margin-top:24px;color:var(--text-faint);font-size:13px}
+  .hero-meta .item{display:flex;align-items:center;gap:8px}
+  .hero-meta svg{width:14px;height:14px;color:var(--good)}
 
-        @keyframes gradient-shift {
-            0%, 100% { background-position: 0% center; }
-            50% { background-position: 100% center; }
-        }
+  .preview-wrap{position:relative}
+  .preview-card{
+    position:relative;overflow:hidden;
+    background:var(--panel);
+    border:1px solid var(--border);
+    box-shadow:
+      0 40px 80px -30px rgba(0,0,0,.7),
+      0 0 60px -20px rgba(230,122,42,.18);
+  }
+  .preview-card img{width:100%;height:auto;display:block;margin-top:-4px;margin-bottom:0}
 
+  /* Section base */
+  section{max-width:1200px;margin:0 auto;padding:80px 28px}
+  .section-head{text-align:center;max-width:720px;margin:0 auto 48px}
+  .section-head .eyebrow{margin-bottom:14px}
+  .section-head h2{font-size:clamp(28px,3.4vw,40px);letter-spacing:-.7px;margin:0 0 12px;font-weight:800;color:var(--text)}
+  .section-head p{color:var(--text-dim);font-size:16px;line-height:1.6;margin:0}
 
-        .glass {
-            background: linear-gradient(135deg, rgba(255, 122, 0, 0.06) 0%, rgba(255, 122, 0, 0.02) 100%);
-            backdrop-filter: blur(24px);
-            border: 1px solid rgba(255, 122, 0, 0.15);
-            position: relative;
-            overflow: hidden;
-        }
+  /* Features grid */
+  .features{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+  .feature{
+    position:relative;padding:24px;border-radius:var(--radius-card);
+    background:var(--card);
+    border:1px solid var(--border);transition:border-color .15s ease, background .15s;
+  }
+  .feature:hover{border-color:var(--accent);background:#2a2a2a}
+  .feature .icon{
+    width:38px;height:38px;border-radius:var(--radius-btn);display:grid;place-items:center;
+    background:var(--card);border:1px solid var(--border);color:var(--accent);margin-bottom:16px;
+  }
+  .feature .icon svg{width:18px;height:18px}
+  .feature h3{margin:0 0 6px;font-size:16px;font-weight:700;letter-spacing:-.1px;color:var(--text)}
+  .feature p{margin:0;color:var(--text-dim);font-size:14px;line-height:1.55}
 
-        .glass::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255, 122, 0, 0.15), transparent);
-            transition: left 0.8s ease;
-        }
+  /* Stats strip */
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:14px}
+  .stat{
+    text-align:center;padding:24px 18px;border-radius:var(--radius-card);
+    background:var(--card);border:1px solid var(--border);
+  }
+  .stat .v{font-size:28px;font-weight:800;letter-spacing:-.4px;color:var(--accent)}
+  .stat .l{color:var(--text-faint);font-size:12.5px;margin-top:4px;letter-spacing:.3px;text-transform:uppercase;font-weight:600}
 
-        .glass:hover::before {
-            left: 100%;
-        }
+  /* How it works */
+  .steps{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+  .step{
+    padding:26px 24px;border-radius:var(--radius-card);background:var(--card);border:1px solid var(--border);position:relative;overflow:hidden;
+  }
+  .step .num{
+    font-weight:900;font-size:56px;line-height:1;letter-spacing:-2px;color:var(--card-hover);
+    position:absolute;right:16px;top:10px;user-select:none;pointer-events:none;
+  }
+  .step h4{margin:0 0 6px;font-size:16px;font-weight:700;color:var(--text)}
+  .step p{margin:0;color:var(--text-dim);font-size:14px;line-height:1.55;max-width:90%}
 
-        .glow-orange {
-            box-shadow: 0 0 80px -30px rgb(255 122 0 / 0.2),
-                        0 0 40px -15px rgb(255 122 0 / 0.12),
-                        0 0 20px -5px rgb(255 122 0 / 0.08);
-        }
+  /* Download CTA */
+  .cta-card{
+    margin-top:18px;
+    background:var(--card);
+    border:1px solid var(--border);border-radius:var(--radius-panel);padding:42px;
+    display:flex;align-items:center;justify-content:space-between;gap:30px;flex-wrap:wrap;
+    position:relative;overflow:hidden;
+  }
+  .cta-card::before{
+    content:"";position:absolute;right:-100px;top:-100px;width:400px;height:400px;
+    background:radial-gradient(circle, rgba(230,122,42,.12), transparent 60%);pointer-events:none;
+  }
+  .cta-card h3{margin:0 0 8px;font-size:24px;letter-spacing:-.3px;color:var(--text)}
+  .cta-card p{margin:0;color:var(--text-dim);max-width:540px;font-size:15px;line-height:1.55}
+  .cta-actions{display:flex;gap:10px;flex-wrap:wrap;position:relative}
+  .cta-small{font-size:12px;color:var(--text-faint);margin-top:10px;display:flex;gap:14px;flex-wrap:wrap}
+  .cta-small span{display:inline-flex;align-items:center;gap:6px}
+  .cta-small svg{width:12px;height:12px;color:var(--good)}
 
-        .nav-link {
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        
-        .nav-link:hover {
-            color: #ffffff;
-            transform: translateY(-2px);
-        }
+  /* FAQ */
+  .faq{max-width:820px;margin:0 auto;display:grid;gap:8px}
+  details{
+    background:var(--card);border:1px solid var(--border);border-radius:var(--radius-card);padding:18px 22px;cursor:pointer;
+    transition:border-color .15s;
+  }
+  details[open]{border-color:var(--accent)}
+  summary{list-style:none;display:flex;justify-content:space-between;align-items:center;font-weight:600;font-size:15px;color:var(--text)}
+  summary::-webkit-details-marker{display:none}
+  summary::after{content:"+";font-size:20px;color:var(--text-faint);transition:transform .15s}
+  details[open] summary::after{content:"−";color:var(--accent)}
+  details p{color:var(--text-dim);font-size:14px;line-height:1.6;margin:12px 0 0}
 
-        .navbar-glow {
-            position: relative;
-        }
+  /* Footer */
+  footer{border-top:1px solid var(--border-soft);margin-top:60px;padding:30px 28px;color:var(--text-faint);font-size:13px}
+  .foot{max-width:1200px;margin:0 auto;display:flex;justify-content:space-between;align-items:center;gap:20px;flex-wrap:wrap}
+  .foot a:hover{color:var(--text)}
 
-        .navbar-glow::before {
-            content: '';
-            position: absolute;
-            bottom: -1px;
-            left: 0;
-            right: 0;
-            height: 1px;
-            background: linear-gradient(90deg, transparent, #ff7a00, transparent);
-            opacity: 0.5;
-        }
-
-        .logo-container {
-            position: relative;
-        }
-
-        .logo-container::after {
-            content: '';
-            position: absolute;
-            inset: -4px;
-            background: linear-gradient(135deg, #ff7a00, #ff9500);
-            border-radius: 12px;
-            opacity: 0;
-            filter: blur(8px);
-            transition: opacity 0.3s ease;
-            z-index: -1;
-        }
-
-        .logo-container:hover::after {
-            opacity: 0.3;
-        }
-
-        .feature-card {
-            transition: all 0.6s cubic-bezier(0.4, 0.0, 0.2, 1);
-            background: linear-gradient(135deg, rgba(255, 122, 0, 0.06) 0%, rgba(255, 122, 0, 0.02) 100%);
-            position: relative;
-            overflow: hidden;
-        }
-        
-        .feature-card::after {
-            content: '';
-            position: absolute;
-            top: -50%;
-            left: -50%;
-            width: 200%;
-            height: 200%;
-            background: radial-gradient(circle, rgba(255, 122, 0, 0.15) 0%, transparent 70%);
-            opacity: 0;
-            transition: opacity 0.6s ease;
-            pointer-events: none;
-        }
-        
-        .feature-card:hover::after {
-            opacity: 1;
-        }
-        
-        .feature-card:hover {
-            transform: translateY(-12px) scale(1.02);
-            background: linear-gradient(135deg, rgba(255, 122, 0, 0.1) 0%, rgba(255, 122, 0, 0.05) 100%);
-            box-shadow: 0 40px 80px -20px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 122, 0, 0.2), 0 0 60px -20px rgba(255, 122, 0, 0.15);
-        }
-
-        .crosshair-demo {
-            animation: crosshair-pulse 4s ease-in-out infinite;
-        }
-
-        @keyframes crosshair-pulse {
-            0%, 100% { opacity: 0.85; }
-            50% { opacity: 1; }
-        }
-
-        .particle {
-            position: absolute;
-            background: rgba(255, 255, 255, 0.3);
-            border-radius: 50%;
-            pointer-events: none;
-            animation: particle-float 15s linear infinite;
-        }
-
-        @keyframes particle-float {
-            0% { transform: translateY(100vh) scale(1); opacity: 0; }
-            10% { opacity: 0.6; }
-            90% { opacity: 0.6; }
-            100% { transform: translateY(-100vh) scale(0.5); opacity: 0; }
-        }
-
-        .btn-primary {
-            position: relative;
-            overflow: hidden;
-            background: linear-gradient(135deg, #ff7a00 0%, #ff9500 100%);
-            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        .btn-primary::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(255, 255, 255, 0.2);
-            transform: scaleX(0);
-            transform-origin: left;
-            transition: transform 0.6s ease;
-        }
-
-        .btn-primary:hover::before {
-            transform: scaleX(1);
-        }
-
-        .btn-primary:hover {
-            transform: translateY(-4px) scale(1.02);
-            box-shadow: 0 20px 40px -10px rgba(255, 122, 0, 0.4), 0 0 60px -20px rgba(255, 122, 0, 0.3);
-        }
-
-        .btn-primary-large {
-            position: relative;
-            overflow: hidden;
-            background: linear-gradient(135deg, #ff7a00 0%, #ff9500 100%);
-            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        .btn-primary-large::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(255, 255, 255, 0.2);
-            transform: scaleX(0);
-            transform-origin: left;
-            transition: transform 0.6s ease;
-        }
-
-        .btn-primary-large:hover::before {
-            transform: scaleX(1);
-        }
-
-        .btn-primary-large:hover {
-            transform: translateY(-4px) scale(1.02);
-            box-shadow: 0 20px 40px -10px rgba(255, 122, 0, 0.4), 0 0 60px -20px rgba(255, 122, 0, 0.3);
-        }
-
-        .btn-secondary {
-            position: relative;
-            overflow: hidden;
-            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        .btn-secondary:hover {
-            transform: translateY(-4px);
-            border-color: rgba(255, 122, 0, 0.6);
-            background: rgba(255, 122, 0, 0.1);
-            box-shadow: 0 20px 40px -10px rgba(255, 122, 0, 0.15);
-        }
-
-        .reveal {
-            opacity: 0;
-            transform: translateY(40px);
-            transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        .reveal.active {
-            opacity: 1;
-            transform: translateY(0);
-        }
-
-        .reveal-delay-1 { transition-delay: 0.1s; }
-        .reveal-delay-2 { transition-delay: 0.2s; }
-        .reveal-delay-3 { transition-delay: 0.3s; }
-        .reveal-delay-4 { transition-delay: 0.4s; }
-        .reveal-delay-5 { transition-delay: 0.5s; }
-        .reveal-delay-6 { transition-delay: 0.6s; }
-
-        .stat-number {
-            font-variant-numeric: tabular-nums;
-        }
-
-        .footer-link {
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            position: relative;
-        }
-
-        .footer-link::after {
-            content: '';
-            position: absolute;
-            bottom: -2px;
-            left: 0;
-            width: 0;
-            height: 1px;
-            background: #ff7a00;
-            transition: width 0.3s ease;
-        }
-
-        .footer-link:hover::after {
-            width: 100%;
-        }
-
-        .footer-link:hover {
-            color: #ff7a00;
-        }
-
-        .footer-glow {
-            position: relative;
-        }
-
-        .footer-glow::before {
-            content: '';
-            position: absolute;
-            top: -1px;
-            left: 0;
-            right: 0;
-            height: 1px;
-            background: linear-gradient(90deg, transparent, #ff7a00, transparent);
-            opacity: 0.3;
-        }
-
-        .grid-bg {
-            background-image: 
-                linear-gradient(to right, rgba(255, 122, 0, 0.03) 1px, transparent 1px),
-                linear-gradient(to bottom, rgba(255, 122, 0, 0.03) 1px, transparent 1px);
-            background-size: 60px 60px;
-        }
-
-        .grid-bg-dense {
-            background-image: 
-                linear-gradient(to right, rgba(255, 122, 0, 0.05) 1px, transparent 1px),
-                linear-gradient(to bottom, rgba(255, 122, 0, 0.05) 1px, transparent 1px);
-            background-size: 30px 30px;
-        }
-
-        .grid-bg-subtle {
-            background-image: 
-                linear-gradient(to right, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
-                linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
-            background-size: 80px 80px;
-        }
-
-        .header-glass {
-            background: rgba(7, 7, 7, 0.8);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border-bottom: 1px solid rgba(255, 122, 0, 0.1);
-        }
-
-        .header-scrolled {
-            background: rgba(7, 7, 7, 0.95);
-            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
-        }
-
-        .mobile-menu {
-            transform: translateX(100%);
-            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        .mobile-menu.open {
-            transform: translateX(0);
-        }
-
-        .mobile-menu-backdrop {
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity 0.3s ease;
-        }
-
-        .mobile-menu-backdrop.open {
-            opacity: 1;
-            pointer-events: auto;
-        }
-
-        .mouse-glow {
-            position: fixed;
-            width: 300px;
-            height: 300px;
-            border-radius: 50%;
-            pointer-events: none;
-            z-index: 1;
-            background: radial-gradient(circle, rgba(255, 122, 0, 0.15) 0%, rgba(255, 149, 0, 0.08) 30%, transparent 70%);
-            transform: translate(-50%, -50%);
-            transition: opacity 0.3s ease;
-            mix-blend-mode: screen;
-        }
-
-        @media (max-width: 768px) {
-            .mouse-glow {
-                display: none;
-            }
-        }
-
-        .orb-float {
-            animation: orb-float 8s ease-in-out infinite;
-        }
-
-        @keyframes orb-float {
-            0%, 100% {
-                transform: translate(0, 0) scale(1);
-                opacity: 0.5;
-            }
-            50% {
-                transform: translate(30px, -30px) scale(1.1);
-                opacity: 0.8;
-            }
-        }
-
-        .orb-float-delayed {
-            animation: orb-float-delayed 10s ease-in-out infinite;
-        }
-
-        @keyframes orb-float-delayed {
-            0%, 100% {
-                transform: translate(0, 0) scale(1);
-                opacity: 0.4;
-            }
-            50% {
-                transform: translate(-40px, 20px) scale(1.15);
-                opacity: 0.7;
-            }
-        }
-    </style>
+  @media (max-width: 900px){
+    .hero{grid-template-columns:1fr;padding-top:48px;gap:40px}
+    .nav-links{display:none}
+    .features,.steps,.stats{grid-template-columns:1fr 1fr}
+    .cta-card{padding:28px}
+  }
+  @media (max-width: 560px){
+    .features,.steps,.stats{grid-template-columns:1fr}
+    section{padding:60px 20px}
+    .nav-inner{padding:12px 20px}
+  }
+</style>
 </head>
-<body class="tail-container bg-[#070707] text-white overflow-x-hidden">
-    <div class="mouse-glow" id="mouse-glow"></div>
+<body>
 
-    <!-- HEADER -->
-    <header id="header" class="fixed top-0 left-0 right-0 z-50 header-glass transition-all duration-300">
-        <div class="max-w-screen-2xl mx-auto px-6 lg:px-8">
-            <div class="flex items-center justify-between h-20">
-                <!-- Logo -->
-                <a href="#" onclick="window.scrollTo(0,0)" class="flex items-center gap-x-3 group">
-                    <div class="relative">
-                        <i class="fa-solid fa-crosshairs text-2xl text-[#ff7a00] group-hover:scale-110 transition-transform"></i>
-                    </div>
-                    <span class="text-xl font-semibold tracking-tight header-title-font">Crosshair Studio</span>
-                </a>
+<header class="nav">
+  <div class="nav-inner">
+    <a class="brand" href="#top">
+      <span class="brand-mark">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#e67a2a" stroke-width="2.2" stroke-linecap="round">
+          <circle cx="12" cy="12" r="8"/>
+          <path d="M12 2v4M12 18v4M2 12h4M18 12h4"/>
+          <circle cx="12" cy="12" r="1.4" fill="#e67a2a" stroke="none"/>
+        </svg>
+      </span>
+      <span class="brand-name">Crosshair <span>Studio</span></span>
+    </a>
+    <nav class="nav-links">
+      <a href="#features">Features</a>
+      <a href="#how">How it works</a>
+      <a href="#download">Download</a>
+      <a href="#faq">FAQ</a>
+    </nav>
+    <div class="nav-cta">
+      <a class="btn btn-primary" href="https://github.com/vizzy1234/crosshairstudio/releases/download/release/Crosshair.Studio-Setup.exe">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>
+        Download
+      </a>
+    </div>
+  </div>
+</header>
 
-                <!-- Desktop Navigation -->
-                <nav class="hidden md:flex items-center gap-x-8">
-                    <a href="#features" class="nav-link text-gray-400 hover:text-white text-sm font-medium">Features</a>
-                    <a href="#showcase" class="nav-link text-gray-400 hover:text-white text-sm font-medium">Showcase</a>
-                    <a href="#why" class="nav-link text-gray-400 hover:text-white text-sm font-medium">Why Us</a>
-                    <a href="#download" class="nav-link text-gray-400 hover:text-white text-sm font-medium">Download</a>
-                </nav>
+<a id="top"></a>
+<section class="hero">
+  <div>
+    <span class="eyebrow"><span class="dot"></span> Free for Windows</span>
+    <h1>The perfect crosshair, <span class="accent">in every game.</span></h1>
+    <p class="lede">
+      Crosshair Studio is a featherlight Windows overlay that draws a fully customisable crosshair on top of any game or app. Pick from hundreds of pro presets, design your own in seconds, and toggle it with a single hotkey — without ever leaving your match.
+    </p>
 
-                <!-- CTA Button -->
-                <div class="hidden md:block">
-                    <a href="#download" onclick="document.getElementById('download').scrollIntoView({ behavior: 'smooth' })" 
-                       class="px-6 py-3 bg-[#ff7a00] hover:bg-[#ff9500] text-white font-semibold text-sm rounded-3xl transition-all btn-primary flex items-center gap-x-2">
-                        <span>Download</span>
-                        <i class="fa-solid fa-download text-xs"></i>
-                    </a>
-                </div>
-
-                <!-- Mobile Menu Button -->
-                <button id="mobile-menu-btn" class="md:hidden p-2 text-gray-400 hover:text-white transition-colors">
-                    <i class="fa-solid fa-bars text-xl"></i>
-                </button>
-            </div>
-        </div>
-    </header>
-
-    <!-- Mobile Menu -->
-    <div id="mobile-menu-backdrop" class="mobile-menu-backdrop fixed inset-0 bg-black/80 z-40 md:hidden"></div>
-    <div id="mobile-menu" class="mobile-menu fixed top-0 right-0 bottom-0 w-80 bg-[#0a0a0a] z-50 md:hidden border-l border-white/10">
-        <div class="p-6">
-            <div class="flex items-center justify-between mb-8">
-                <span class="text-lg font-semibold tracking-tighter heading-font">MENU</span>
-                <button id="mobile-menu-close" class="p-2 text-gray-400 hover:text-white transition-colors">
-                    <i class="fa-solid fa-xmark text-xl"></i>
-                </button>
-            </div>
-            <nav class="flex flex-col gap-y-6">
-                <a href="#features" class="mobile-nav-link text-gray-400 hover:text-white text-lg font-medium transition-colors">Features</a>
-                <a href="#showcase" class="mobile-nav-link text-gray-400 hover:text-white text-lg font-medium transition-colors">Showcase</a>
-                <a href="#why" class="mobile-nav-link text-gray-400 hover:text-white text-lg font-medium transition-colors">Why Us</a>
-                <a href="#download" class="mobile-nav-link text-gray-400 hover:text-white text-lg font-medium transition-colors">Download</a>
-            </nav>
-            <div class="mt-8 pt-8 border-t border-white/10">
-                <a href="#download" class="mobile-nav-link w-full px-6 py-4 bg-[#ff7a00] hover:bg-[#ff9500] text-white font-semibold rounded-2xl transition-all btn-primary flex items-center justify-center gap-x-2">
-                    <span>Download Now</span>
-                    <i class="fa-solid fa-download"></i>
-                </a>
-            </div>
-        </div>
+    <div class="hero-cta">
+      <a class="btn btn-primary" href="https://github.com/vizzy1234/crosshairstudio/releases/download/release/Crosshair.Studio-Setup.exe">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>
+        Download for Windows
+      </a>
+      <a class="btn btn-ghost" href="#features">See features →</a>
     </div>
 
-    <!-- HERO -->
-    <section class="min-h-screen pt-24 flex items-center relative overflow-hidden grid-bg bg-[#070707] hero-bg">
-        <!-- Background Grid -->
-        <div class="absolute inset-0 bg-[linear-gradient(to_right,#222_1px,transparent_1px),linear-gradient(to_bottom,#222_1px,transparent_1px)] bg-[size:60px_60px] opacity-10"></div>
+    <div class="hero-meta">
+      <span class="item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5L20 7"/></svg>
+        100% free
+      </span>
+      <span class="item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5L20 7"/></svg>
+        0% idle CPU
+      </span>
+      <span class="item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5L20 7"/></svg>
+        Works in any game
+      </span>
+      <span class="item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5L20 7"/></svg>
+        Windows 10 / 11
+      </span>
+    </div>
+  </div>
 
-        <!-- Animated Gradient Orbs -->
-        <div class="absolute top-1/4 left-1/4 w-[500px] h-[500px] bg-[#ff7a00]/15 rounded-full blur-3xl orb-float"></div>
-        <div class="absolute bottom-1/4 right-1/4 w-[450px] h-[450px] bg-[#ff9500]/12 rounded-full blur-3xl orb-float-delayed"></div>
+  <div class="preview-wrap">
+    <div class="preview-card">
+      <img src="https://github.com/vizzy1234/crosshairstudio/blob/main/Preview.png?raw=true" alt="Crosshair Studio interface preview" loading="eager" />
+    </div>
+  </div>
+</section>
 
-        <div class="max-w-screen-2xl mx-auto px-8 pt-32 pb-24 flex flex-col items-center justify-center text-center relative z-10">
-            <!-- Badge -->
-            <div class="inline-flex items-center gap-x-3 px-5 py-2.5 bg-white/5 border border-white/10 rounded-full mb-10 reveal">
-                <span class="w-2 h-2 bg-[#ff7a00] rounded-full animate-pulse"></span>
-                <span class="text-sm text-gray-300 font-medium">Zero CPU Impact • 100% Free</span>
-            </div>
+<section id="features">
+  <div class="section-head">
+    <span class="eyebrow">Features</span>
+    <h2>Built for players who care about every pixel.</h2>
+    <p>A native Direct2D overlay that's faster, cleaner, and more configurable than the alternatives — without bloating your system tray.</p>
+  </div>
 
-            <h1 class="text-5xl md:text-7xl lg:text-8xl font-bold leading-[0.9] tracking-tighter heading-font mb-8">
-                Your crosshair,<br><span class="gradient-text">perfectly placed.</span>
-            </h1>
+  <div class="features">
+    <div class="feature">
+      <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 3v4M12 17v4M3 12h4M17 12h4"/></svg></div>
+      <h3>Hundreds of presets</h3>
+      <p>Curated minimalist, tactical, dot, classic, and accent crosshairs — copied straight from the pro player loadouts you've seen on stream.</p>
+    </div>
 
-            <p class="max-w-3xl text-xl md:text-2xl text-gray-400 leading-relaxed mb-12">
-                The free alternative to Crosshair X. Customize every pixel precisely, dominate every match with no performance impact.
-            </p>
+    <div class="feature">
+      <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17v4h4"/><path d="m3 21 7-7"/><path d="M14 4h7v7"/><path d="m14 10 7-7"/></svg></div>
+      <h3>Full designer</h3>
+      <p>Tweak lines, gap, center dot, outline, thickness, opacity, and colour in a live preview. Or build your crosshair from scratch.</p>
+    </div>
 
-            <!-- CTA Buttons -->
-            <div class="flex flex-col sm:flex-row gap-4 mb-16">
-                <a href="#download" onclick="document.getElementById('download').scrollIntoView({ behavior: 'smooth' })"
-                   class="px-10 py-5 bg-[#ff7a00] hover:bg-[#ff9500] text-white font-semibold text-lg rounded-2xl transition-all btn-primary flex items-center gap-x-3">
-                    <span>Download Free</span>
-                    <i class="fa-solid fa-download"></i>
-                </a>
-                <a href="#features"
-                   class="px-10 py-5 bg-white/5 hover:bg-white/10 border border-white/10 text-white font-semibold text-lg rounded-2xl transition-all btn-secondary flex items-center gap-x-3">
-                    <span>Explore Features</span>
-                    <i class="fa-solid fa-arrow-right"></i>
-                </a>
-            </div>
+    <div class="feature">
+      <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="12" rx="2"/><path d="M7 10h2M11 10h2M15 10h2M7 14h10"/></svg></div>
+      <h3>Custom keybinds</h3>
+      <p>Bind toggle, swap, and hide to any key or mouse button. Hotkeys work even while you're mid-clutch — no alt-tab required.</p>
+    </div>
 
-            <!-- Trust Indicators -->
-            <div class="flex flex-wrap justify-center gap-x-8 gap-y-4 text-sm text-gray-500">
-                <div class="flex items-center gap-x-2">
-                    <i class="fa-solid fa-check text-[#ff7a00]"></i>
-                    <span>No Installation Required</span>
-                </div>
-                <div class="flex items-center gap-x-2">
-                    <i class="fa-solid fa-check text-[#ff7a00]"></i>
-                    <span>Works with Any Game</span>
-                </div>
-                <div class="flex items-center gap-x-2">
-                    <i class="fa-solid fa-check text-[#ff7a00]"></i>
-                    <span>100% Safe & Secure</span>
-                </div>
-            </div>
-        </div>
-    </section>
+    <div class="feature">
+      <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></svg></div>
+      <h3>True 0% idle CPU</h3>
+      <p>Native C++ and Direct2D. The overlay renders only on change and the UI sleeps once animations settle. No background drain.</p>
+    </div>
 
-    <!-- FEATURES -->
-    <section id="features" class="py-28 bg-[#070707] relative">
-        <div class="max-w-screen-2xl mx-auto px-8">
-            <div class="flex flex-col items-center text-center mb-20 reveal">
-                <div class="uppercase text-xs tracking-[4px] text-[#ff7a00] mb-4">BUILT FOR COMPETITION</div>
-                <h2 class="text-5xl font-semibold heading-font tracking-tight leading-tight gradient-text">Next-level customization</h2>
-            </div>
-            
-            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-                <!-- Feature 1 -->
-                <div class="feature-card glass p-8 rounded-3xl group reveal reveal-delay-1">
-                    <div class="h-12 w-12 bg-[#ff7a00]/10 flex items-center justify-center rounded-2xl mb-8 group-hover:scale-110 transition-transform">
-                        <i class="fa-solid fa-sliders text-2xl text-[#ff7a00]"></i>
-                    </div>
-                    <h3 class="text-2xl font-semibold mb-4 tracking-tight">Full Customization</h3>
-                    <p class="text-gray-400 leading-relaxed">Adjust length, thickness, gap, opacity, rotation, scale, and position. T-shape, center dot, and outline options.</p>
-                </div>
-                
-                <!-- Feature 2 -->
-                <div class="feature-card glass p-8 rounded-3xl group reveal reveal-delay-2">
-                    <div class="h-12 w-12 bg-[#ff7a00]/10 flex items-center justify-center rounded-2xl mb-8 group-hover:scale-110 transition-transform">
-                        <i class="fa-solid fa-layer-group text-2xl text-[#ff7a00]"></i>
-                    </div>
-                    <h3 class="text-2xl font-semibold mb-4 tracking-tight">Transparent Overlay</h3>
-                    <p class="text-gray-400 leading-relaxed">Click-through, always-on-top window that works over any game or application.</p>
-                </div>
-                
-                <!-- Feature 3 -->
-                <div class="feature-card glass p-8 rounded-3xl group reveal reveal-delay-3">
-                    <div class="h-12 w-12 bg-[#ff7a00]/10 flex items-center justify-center rounded-2xl mb-8 group-hover:scale-110 transition-transform">
-                        <i class="fa-solid fa-keyboard text-2xl text-[#ff7a00]"></i>
-                    </div>
-                    <h3 class="text-2xl font-semibold mb-4 tracking-tight">Custom Hotkeys</h3>
-                    <p class="text-gray-400 leading-relaxed">Bind any key or mouse button. Toggle or hold mode with Ctrl/Alt/Shift modifiers.</p>
-                </div>
-                
-                <!-- Feature 4 -->
-                <div class="feature-card glass p-8 rounded-3xl group reveal reveal-delay-4">
-                    <div class="h-12 w-12 bg-[#ff7a00]/10 flex items-center justify-center rounded-2xl mb-8 group-hover:scale-110 transition-transform">
-                        <i class="fa-solid fa-gauge-high text-2xl text-[#ff7a00]"></i>
-                    </div>
-                    <h3 class="text-2xl font-semibold mb-4 tracking-tight">Zero CPU Impact</h3>
-                    <p class="text-gray-400 leading-relaxed">Uses layered window rendering. Costs ~0% CPU while idle.</p>
-                </div>
-                
-                <!-- Feature 5 -->
-                <div class="feature-card glass p-8 rounded-3xl group reveal reveal-delay-5">
-                    <div class="h-12 w-12 bg-[#ff7a00]/10 flex items-center justify-center rounded-2xl mb-8 group-hover:scale-110 transition-transform">
-                        <i class="fa-solid fa-floppy-disk text-2xl text-[#ff7a00]"></i>
-                    </div>
-                    <h3 class="text-2xl font-semibold mb-4 tracking-tight">Save Presets</h3>
-                    <p class="text-gray-400 leading-relaxed">Save and load unlimited crosshair configurations.</p>
-                </div>
-                
-                <!-- Feature 6 -->
-                <div class="feature-card glass p-8 rounded-3xl group reveal reveal-delay-6">
-                    <div class="h-12 w-12 bg-[#ff7a00]/10 flex items-center justify-center rounded-2xl mb-8 group-hover:scale-110 transition-transform">
-                        <i class="fa-solid fa-display text-2xl text-[#ff7a00]"></i>
-                    </div>
-                    <h3 class="text-2xl font-semibold mb-4 tracking-tight">Multi-Monitor</h3>
-                    <p class="text-gray-400 leading-relaxed">Target any specific monitor for your overlay.</p>
-                </div>
-            </div>
-        </div>
-    </section>
+    <div class="feature">
+      <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg></div>
+      <h3>Works on any game</h3>
+      <p>A click-through layered window sits above fullscreen-windowed and borderless titles, keeping your crosshair pinned to the exact center of the screen.</p>
+    </div>
 
-    <!-- SHOWCASE -->
-    <section id="showcase" class="py-28 bg-[#070707] relative">
-        <div class="max-w-screen-2xl mx-auto px-8">
-            <div class="grid lg:grid-cols-12 gap-20 items-center">
-                <div class="lg:col-span-6 flex flex-col justify-center lg:pr-12">
-                    <div class="uppercase text-[#ff7a00] text-base tracking-[4px] mb-6 reveal">THE EDITOR</div>
-                    <h2 class="text-6xl lg:text-7xl font-bold heading-font leading-[0.9] mb-10 reveal">Built like a<br><span class="gradient-text">professional tool</span></h2>
-                    <p class="text-xl text-gray-300 leading-relaxed mb-16 reveal">Every control you need. Nothing you don't.</p>
-                    
-                    <div class="space-y-10">
-                        <div class="flex items-start gap-x-8 reveal">
-                            <div class="text-5xl font-mono text-[#ff7a00] flex-shrink-0">01</div>
-                            <div>
-                                <div class="text-2xl font-semibold mb-3">Real-time controls</div>
-                                <div class="text-base text-gray-400">Thickness, length, gap, opacity, rotation, scale</div>
-                            </div>
-                        </div>
-                        <div class="flex items-start gap-x-8 reveal">
-                            <div class="text-5xl font-mono text-[#ff7a00] flex-shrink-0">02</div>
-                            <div>
-                                <div class="text-2xl font-semibold mb-3">Style options</div>
-                                <div class="text-base text-gray-400">Center dot, T-shape, outline, cap shapes</div>
-                            </div>
-                        </div>
-                        <div class="flex items-start gap-x-8 reveal">
-                            <div class="text-5xl font-mono text-[#ff7a00] flex-shrink-0">03</div>
-                            <div>
-                                <div class="text-2xl font-semibold mb-3">Positioning</div>
-                                <div class="text-base text-gray-400">Screen offset, multi-monitor support</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Mock UI -->
-                <div class="lg:col-span-6 flex justify-center lg:justify-end">
-                    <div class="glass rounded-3xl p-4 glow-orange w-full max-w-3xl">
-                        <img src="https://github.com/vizzy1234/crosshairstudio/blob/main/Preview.png?raw=true" alt="Editor Preview" class="w-full rounded-2xl object-cover shadow-2xl">
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
+    <div class="feature">
+      <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1A1.7 1.7 0 0 0 9 19.4a1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1A1.7 1.7 0 0 0 4.6 9a1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></div>
+      <h3>Profiles & autostart</h3>
+      <p>Save unlimited profiles per game, launch on startup, and minimize to tray. Your settings persist between sessions automatically.</p>
+    </div>
+  </div>
 
-    <!-- WHY CHOOSE -->
-    <section id="why" class="py-28 bg-[#070707] relative">
-        <div class="max-w-screen-2xl mx-auto px-8">
-            <div class="grid md:grid-cols-12 gap-20">
-                <div class="md:col-span-5">
-                    <div class="text-[#ff7a00] uppercase text-sm">TRUSTED BY PROS</div>
-                    <h2 class="heading-font text-6xl font-bold tracking-tighter mt-4 leading-none">Why serious players choose Crosshair Studio</h2>
-                    <p class="mt-8 max-w-md text-gray-400">Built by FPS players, for FPS players. Zero bloat. Maximum performance.</p>
-                </div>
-                
-                <div class="md:col-span-7 space-y-8">
-                    <div class="flex gap-8 items-start">
-                        <div class="shrink-0 w-10 h-10 rounded-2xl bg-[#ff7a00]/10 flex items-center justify-center">
-                            <i class="fa-solid fa-bolt text-2xl text-[#ff7a00]"></i>
-                        </div>
-                        <div>
-                            <h4 class="font-semibold text-xl">Zero overhead</h4>
-                            <p class="text-gray-400">No FPS loss ever.</p>
-                        </div>
-                    </div>
-                    <div class="flex gap-8 items-start">
-                        <div class="shrink-0 w-10 h-10 rounded-2xl bg-[#ff7a00]/10 flex items-center justify-center">
-                            <i class="fa-solid fa-shield text-2xl text-[#ff7a00]"></i>
-                        </div>
-                        <div>
-                            <h4 class="font-semibold text-xl">Privacy first</h4>
-                            <p class="text-gray-400">No telemetry. No accounts required.</p>
-                        </div>
-                    </div>
-                    <div class="flex gap-8 items-start">
-                        <div class="shrink-0 w-10 h-10 rounded-2xl bg-[#ff7a00]/10 flex items-center justify-center">
-                            <i class="fa-solid fa-feather text-2xl text-[#ff7a00]"></i>
-                        </div>
-                        <div>
-                            <h4 class="font-semibold text-xl">Lightweight</h4>
-                            <p class="text-gray-400">No bloat, no unnecessary features.</p>
-                        </div>
-                    </div>
-                    <div class="flex gap-8 items-start">
-                        <div class="shrink-0 w-10 h-10 rounded-2xl bg-[#ff7a00]/10 flex items-center justify-center">
-                            <i class="fa-solid fa-gamepad text-2xl text-[#ff7a00]"></i>
-                        </div>
-                        <div>
-                            <h4 class="font-semibold text-xl">Universal compatibility</h4>
-                            <p class="text-gray-400">Works with any game or application on Windows.</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
+  <div class="stats">
+    <div class="stat"><div class="v">Dozens</div><div class="l">Of built-in presets</div></div>
+    <div class="stat"><div class="v">&lt;15 MB</div><div class="l">Installer size</div></div>
+    <div class="stat"><div class="v">0%</div><div class="l">Idle CPU</div></div>
+    <div class="stat"><div class="v">$0</div><div class="l">Forever free</div></div>
+  </div>
+</section>
 
-    <!-- FINAL CTA -->
-    <section id="download" class="py-32 border-t border-white/10 bg-[#070707] relative">
-        <div class="max-w-screen-2xl mx-auto px-8 text-center">
-            <div class="max-w-2xl mx-auto">
-                <span class="px-6 py-3 bg-white/5 text-sm font-medium rounded-3xl tracking-wide">Ready to elevate your game?</span>
-                <h2 class="heading-font text-7xl font-bold tracking-tighter mt-10 leading-[0.9]">Get Crosshair Studio today</h2>
-                <p class="mt-8 text-xl text-gray-400 leading-relaxed">Professional precision. No compromises.</p>
-                
-                <button onclick="downloadInstaller()"
-                        class="mt-12 group px-16 py-8 text-2xl font-semibold bg-[#ff7a00] hover:bg-[#ff9500] text-white rounded-3xl flex items-center gap-x-6 mx-auto transition-all active:scale-[0.97] btn-primary-large">
-                    <span>DOWNLOAD FOR WINDOWS</span>
-                    <i class="fa-solid fa-download text-3xl group-active:-rotate-12 transition-transform"></i>
-                </button>
-                
-                <div class="flex justify-center gap-x-8 mt-12 text-sm">
-                    <div class="flex items-center gap-x-3">
-                        <i class="fa-solid fa-shield text-white/60"></i>
-                        <span class="text-white/60">Secure</span>
-                    </div>
-                    <div class="flex items-center gap-x-3">
-                        <i class="fa-solid fa-feather text-white/60"></i>
-                        <span class="text-white/60">Lightweight</span>
-                    </div>
-                    <div class="flex items-center gap-x-3">
-                        <i class="fa-solid fa-gauge-high text-white/60"></i>
-                        <span class="text-white/60">High Performance</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
+<section id="how">
+  <div class="section-head">
+    <span class="eyebrow">How it works</span>
+    <h2>From install to in-game in under a minute.</h2>
+    <p>No accounts. No telemetry. No ads. Just download, pick a crosshair, and play.</p>
+  </div>
+  <div class="steps">
+    <div class="step">
+      <div class="num">01</div>
+      <h4>Install</h4>
+      <p>Run the installer. Crosshair Studio registers a tray icon and an optional autostart entry — that's it.</p>
+    </div>
+    <div class="step">
+      <div class="num">02</div>
+      <h4>Pick or design</h4>
+      <p>Browse the gallery, drop in a preset, or open the Designer to tune every line, gap, and pixel.</p>
+    </div>
+    <div class="step">
+      <div class="num">03</div>
+      <h4>Play</h4>
+      <p>Launch any game in borderless or windowed mode. Your crosshair stays perfectly centered on top.</p>
+    </div>
+  </div>
+</section>
 
-    <!-- FOOTER -->
-    <footer class="bg-[#070707] footer-glow">
-        <div class="max-w-screen-2xl mx-auto px-8 pt-20 pb-12">
-            <div class="grid md:grid-cols-4 gap-12">
-                <!-- Brand -->
-                <div class="md:col-span-2">
-                    <div class="flex items-center gap-x-3 mb-6">
-                        <i class="fa-solid fa-crosshairs text-2xl text-[#ff7a00]"></i>
-                        <span class="text-2xl font-semibold tracking-tighter">Crosshair Studio</span>
-                    </div>
-                    <p class="text-gray-400 text-sm leading-relaxed max-w-sm">
-                        A transparent overlay that displays customizable crosshairs over any application. Built for competitive gamers who demand precision.
-                    </p>
-                </div>
-                
-                <!-- Quick Links -->
-                <div>
-                    <h4 class="text-sm font-semibold tracking-widest text-white/60 mb-6">PRODUCT</h4>
-                    <ul class="space-y-4">
-                        <li><a href="#features" class="text-gray-400 hover:text-[#ff7a00] text-sm footer-link">Features</a></li>
-                        <li><a href="#showcase" class="text-gray-400 hover:text-[#ff7a00] text-sm footer-link">Showcase</a></li>
-                        <li><a href="#download" class="text-gray-400 hover:text-[#ff7a00] text-sm footer-link">Download</a></li>
-                    </ul>
-                </div>
-                
-                <!-- Resources -->
-                <div>
-                    <h4 class="text-sm font-semibold tracking-widest text-white/60 mb-6">RESOURCES</h4>
-                    <ul class="space-y-4">
-                        <li><a href="#" onclick="window.scrollTo(0,0)" class="text-gray-400 hover:text-[#ff7a00] text-sm footer-link">Documentation</a></li>
-                        <li><a href="#" onclick="window.scrollTo(0,0)" class="text-gray-400 hover:text-[#ff7a00] text-sm footer-link">Support</a></li>
-                        <li><a href="#" onclick="window.scrollTo(0,0)" class="text-gray-400 hover:text-[#ff7a00] text-sm footer-link">Changelog</a></li>
-                    </ul>
-                </div>
-            </div>
-            
-            <div class="border-t border-white/10 mt-16 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
-                <div class="flex items-center gap-x-6">
-                    <a href="#" onclick="window.scrollTo(0,0)" class="hover:text-[#ff7a00] footer-link text-xs text-gray-500">Privacy</a>
-                    <a href="#" onclick="window.scrollTo(0,0)" class="hover:text-[#ff7a00] footer-link text-xs text-gray-500">Terms</a>
-                    <a href="#" onclick="window.scrollTo(0,0)" class="hover:text-[#ff7a00] footer-link text-xs text-gray-500">License</a>
-                </div>
-            </div>
-        </div>
-    </footer>
+<section id="download">
+  <div class="cta-card">
+    <div>
+      <h3>Ready to lock in your aim?</h3>
+      <p>Download Crosshair Studio for Windows. Free forever, no sign-up needed, takes seconds to install.</p>
+      <div class="cta-small">
+        <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5L20 7"/></svg> Windows 10 / 11 (x64)</span>
+        <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5L20 7"/></svg> ~15 MB installer</span>
+      </div>
+    </div>
+    <div class="cta-actions">
+      <a class="btn btn-primary" href="https://github.com/vizzy1234/crosshairstudio/releases/download/release/Crosshair.Studio-Setup.exe">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>
+        Download Setup.exe
+      </a>
+    </div>
+  </div>
+</section>
 
-    <script>
-        const header = document.getElementById('header');
-        let lastScroll = 0;
+<section id="faq">
+  <div class="section-head">
+    <span class="eyebrow">FAQ</span>
+    <h2>Questions, answered.</h2>
+  </div>
+  <div class="faq">
+    <details>
+      <summary>Does it work in fullscreen?</summary>
+      <p>Crosshair Studio works in <strong>borderless</strong> and <strong>windowed</strong> modes. Most modern games default to borderless and are visually indistinguishable from fullscreen. Exclusive fullscreen blocks all overlays at the OS level.</p>
+    </details>
+    <details>
+      <summary>Will it impact my framerate?</summary>
+      <p>No. The overlay is event-driven and idles at true 0% CPU. The control panel only repaints when animations are running, then sleeps. Rendering uses native Direct2D — no Electron, no web view, no background workers.</p>
+    </details>
+    <details>
+      <summary>Is it really free?</summary>
+      <p>Yes — completely free, with no ads, no tracking, and no premium tier.</p>
+    </details>
+    <details>
+      <summary>Can I make my own crosshair?</summary>
+      <p>Absolutely — that's what the Designer is for. Adjust lines, center dot, gap, thickness, outline, colour, opacity, and rotation. Save unlimited custom crosshairs and switch between them with a hotkey.</p>
+    </details>
+  </div>
+</section>
 
-        window.addEventListener('scroll', () => {
-            const currentScroll = window.pageYOffset;
+<footer>
+  <div class="foot">
+    <div class="brand">
+      <span class="brand-mark">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#e67a2a" stroke-width="2.2" stroke-linecap="round">
+          <circle cx="12" cy="12" r="8"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/>
+          <circle cx="12" cy="12" r="1.4" fill="#e67a2a" stroke="none"/>
+        </svg>
+      </span>
+      <span class="brand-name">Crosshair <span>Studio</span></span>
+    </div>
+    <div>© 2026 Crosshair Studio · Built for the FPS community</div>
+  </div>
+</footer>
 
-            if (currentScroll > 50) {
-                header.classList.add('header-scrolled');
-            } else {
-                header.classList.remove('header-scrolled');
-            }
-
-            lastScroll = currentScroll;
-        });
-        const mobileMenuBtn = document.getElementById('mobile-menu-btn');
-        const mobileMenuClose = document.getElementById('mobile-menu-close');
-        const mobileMenu = document.getElementById('mobile-menu');
-        const mobileMenuBackdrop = document.getElementById('mobile-menu-backdrop');
-        const mobileNavLinks = document.querySelectorAll('.mobile-nav-link');
-
-        function openMobileMenu() {
-            mobileMenu.classList.add('open');
-            mobileMenuBackdrop.classList.add('open');
-            document.body.style.overflow = 'hidden';
-        }
-
-        function closeMobileMenu() {
-            mobileMenu.classList.remove('open');
-            mobileMenuBackdrop.classList.remove('open');
-            document.body.style.overflow = '';
-        }
-
-        mobileMenuBtn.addEventListener('click', openMobileMenu);
-        mobileMenuClose.addEventListener('click', closeMobileMenu);
-        mobileMenuBackdrop.addEventListener('click', closeMobileMenu);
-
-        mobileNavLinks.forEach(link => {
-            link.addEventListener('click', closeMobileMenu);
-        });
-
-
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape') {
-                closeMobileMenu();
-            }
-        });
-
-        function downloadInstaller() {
-            window.location.href = 'https://github.com/vizzy1234/crosshairstudio/releases/download/release/Crosshair.Studio-Setup.exe';
-        }
-        const observerOptions = {
-            threshold: 0.1,
-            rootMargin: '0px 0px -50px 0px'
-        };
-        
-        const observer = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    entry.target.classList.add('active');
-                }
-            });
-        }, observerOptions);
-        
-
-        document.querySelectorAll('.reveal').forEach(el => {
-            observer.observe(el);
-        });
-        
-        function animateCounter(element, target, suffix = '') {
-            const duration = 2000;
-            const start = 0;
-            const increment = target / (duration / 16);
-            let current = start;
-            
-            const timer = setInterval(() => {
-                current += increment;
-                if (current >= target) {
-                    current = target;
-                    clearInterval(timer);
-                }
-                
-                if (target === 500) {
-                    element.textContent = Math.floor(current) + 'K+';
-                } else if (target === 0) {
-                    element.textContent = '0ms';
-                } else if (target === 150) {
-                    element.textContent = Math.floor(current) + '+';
-                } else if (target === 99) {
-                    element.textContent = '99.9%';
-                }
-            }, 16);
-        }
-
-        const statsObserver = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    const statNumbers = entry.target.querySelectorAll('.stat-number');
-                    statNumbers.forEach(stat => {
-                        const target = parseInt(stat.dataset.target);
-                        animateCounter(stat, target);
-                    });
-                    statsObserver.unobserve(entry.target);
-                }
-            });
-        }, { threshold: 0.5 });
-        
-        const statsSection = document.querySelector('.reveal');
-        if (statsSection) {
-            statsObserver.observe(statsSection);
-        }
-        
-        document.addEventListener('mousemove', (e) => {
-            const hero = document.querySelector('.hero-bg');
-            if (hero) {
-                const x = (e.clientX / window.innerWidth - 0.5) * 20;
-                const y = (e.clientY / window.innerHeight - 0.5) * 20;
-                hero.style.transform = `translate(${x}px, ${y}px)`;
-            }
-        });
-
-
-        const mouseGlow = document.getElementById('mouse-glow');
-
-        if (mouseGlow) {
-            document.addEventListener('mousemove', (e) => {
-                mouseGlow.style.left = e.clientX + 'px';
-                mouseGlow.style.top = e.clientY + 'px';
-            });
-        }
-        
-
-        window.onload = function() {
-
-            if (typeof gsap !== "undefined") {
-                gsap.from(".hero-bg h1", {
-                    y: 80,
-                    opacity: 0,
-                    duration: 1.2,
-                    ease: "power3.out"
-                });
-                
-                gsap.from(".hero-bg p", {
-                    y: 40,
-                    opacity: 0,
-                    duration: 1,
-                    delay: 0.3,
-                    ease: "power3.out"
-                });
-                
-                gsap.from(".hero-bg button", {
-                    y: 40,
-                    opacity: 0,
-                    duration: 1,
-                    delay: 0.5,
-                    ease: "power3.out"
-                });
-            }
-        };
-    </script>
 </body>
 </html>
